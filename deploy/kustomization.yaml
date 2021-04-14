@@ -9,7 +9,7 @@ resources:
 - crds/keycloak.org_keycloakrealms_crd.yaml
 - crds/keycloak.org_keycloaks_crd.yaml
 - crds/keycloak.org_keycloakusers_crd.yaml
-- namespace.yaml
+#- namespace.yaml
 - role.yaml
 - role_binding.yaml
 - service_account.yaml
