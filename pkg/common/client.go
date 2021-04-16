@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -16,6 +17,7 @@ import (
 	"github.com/keycloak/keycloak-operator/pkg/model"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	config2 "sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -796,12 +798,31 @@ func (c *Client) login(user, pass string) error {
 }
 
 // defaultRequester returns a default client for requesting http endpoints
-func defaultRequester() Requester {
+func defaultRequester(serverCert []byte) (Requester, error) {
+	tlsConfig, err := createTLSConfig(serverCert)
+	if err != nil {
+		return nil, err
+	}
 	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} // nolint
+	transport.TLSClientConfig = tlsConfig
 
 	c := &http.Client{Transport: transport, Timeout: time.Second * 10}
-	return c
+	return c, nil
+}
+
+// createTLSConfig constructs and returns a TLS Config with a root CA read
+// from the serverCert param if present, or a permissive config which
+// is insecure otherwise
+func createTLSConfig(serverCert []byte) (*tls.Config, error) {
+	if serverCert == nil {
+		return &tls.Config{InsecureSkipVerify: true}, nil // nolint
+	}
+
+	rootCAPool := x509.NewCertPool()
+	if ok := rootCAPool.AppendCertsFromPEM(serverCert); !ok {
+		return nil, errors.Errorf("unable to successfully load certificate")
+	}
+	return &tls.Config{RootCAs: rootCAPool}, nil
 }
 
 //go:generate moq -out keycloakClient_moq.go . KeycloakInterface
@@ -907,12 +928,35 @@ func (i *LocalConfigKeycloakFactory) AuthenticatedClient(kc v1alpha1.Keycloak) (
 	}
 	user := string(adminCreds.Data[model.AdminUsernameProperty])
 	pass := string(adminCreds.Data[model.AdminPasswordProperty])
+
+	serverCert, err := getKCServerCert(secretClient, kc)
+	if err != nil {
+		return nil, err
+	}
+
+	requester, err := defaultRequester(serverCert)
+	if err != nil {
+		return nil, err
+	}
+
 	client := &Client{
 		URL:       endpoint,
-		requester: defaultRequester(),
+		requester: requester,
 	}
 	if err := client.login(user, pass); err != nil {
 		return nil, err
 	}
 	return client, nil
+}
+
+func getKCServerCert(secretClient *kubernetes.Clientset, kc v1alpha1.Keycloak) ([]byte, error) {
+	sslCertsSecret, err := secretClient.CoreV1().Secrets(kc.Namespace).Get(context.TODO(), model.ServingCertSecretName, v12.GetOptions{})
+	switch {
+	case err == nil:
+		return sslCertsSecret.Data["tls.crt"], nil
+	case k8sErrors.IsNotFound(err):
+		return nil, nil
+	default:
+		return nil, err
+	}
 }
