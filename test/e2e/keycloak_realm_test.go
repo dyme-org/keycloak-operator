@@ -58,19 +58,22 @@ func getKeycloakRealmCR(namespace string) *keycloakv1alpha1.KeycloakRealm {
 				MatchLabels: CreateLabel(namespace),
 			},
 			Realm: &keycloakv1alpha1.KeycloakAPIRealm{
-				ID:                           realmName,
-				Realm:                        realmName,
-				Enabled:                      true,
-				DisplayName:                  "Operator Testing Realm",
-				DisplayNameHTML:              "<div class='kc-logo-text'><span>Operator Testing Realm</span></div>",
-				BruteForceProtected:          &[]bool{true}[0],
-				PermanentLockout:             &[]bool{false}[0],
-				FailureFactor:                &[]int32{30}[0],
-				WaitIncrementSeconds:         &[]int32{60}[0],
-				QuickLoginCheckMilliSeconds:  &[]int64{1000}[0],
-				MinimumQuickLoginWaitSeconds: &[]int32{60}[0],
-				MaxFailureWaitSeconds:        &[]int32{900}[0],
-				MaxDeltaTimeSeconds:          &[]int32{43200}[0],
+				ID:                                 realmName,
+				Realm:                              realmName,
+				Enabled:                            true,
+				DisplayName:                        "Operator Testing Realm",
+				DisplayNameHTML:                    "<div class='kc-logo-text'><span>Operator Testing Realm</span></div>",
+				PasswordPolicy:                     "lowerCase(1)",
+				BruteForceProtected:                &[]bool{true}[0],
+				PermanentLockout:                   &[]bool{false}[0],
+				FailureFactor:                      &[]int32{30}[0],
+				WaitIncrementSeconds:               &[]int32{60}[0],
+				QuickLoginCheckMilliSeconds:        &[]int64{1000}[0],
+				MinimumQuickLoginWaitSeconds:       &[]int32{60}[0],
+				MaxFailureWaitSeconds:              &[]int32{900}[0],
+				MaxDeltaTimeSeconds:                &[]int32{43200}[0],
+				AccessTokenLifespanForImplicitFlow: &[]int32{3600}[0],
+				AccessTokenLifespan:                &[]int32{4800}[0],
 				SMTPServer: map[string]string{
 					"starttls":        "",
 					"auth":            "",
@@ -141,10 +144,10 @@ func keycloakRealmWithIdentityProviderTest(t *testing.T, framework *test.Framewo
 	}
 
 	keycloakCR := getDeployedKeycloakCR(framework, namespace)
-	keycloakInternalURL := keycloakCR.Status.InternalURL
+	keycloakURL := keycloakCR.Status.ExternalURL
 
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true} //nolint
-	return WaitForSuccessResponseToContain(t, framework, keycloakInternalURL+"/auth/realms/"+realmName+"/account", testOperatorIDPDisplayName)
+	return WaitForSuccessResponseToContain(t, framework, keycloakURL+"/auth/realms/"+realmName+"/account", testOperatorIDPDisplayName)
 }
 
 func keycloakRealmWithClientScopesTest(t *testing.T, framework *test.Framework, ctx *test.Context, namespace string) error {
@@ -265,10 +268,10 @@ func keycloakRealmWithClientScopesTest(t *testing.T, framework *test.Framework, 
 	}
 
 	keycloakCR := getDeployedKeycloakCR(framework, namespace)
-	keycloakInternalURL := keycloakCR.Status.InternalURL
+	keycloakURL := keycloakCR.Status.ExternalURL
 
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true} //nolint
-	return WaitForSuccessResponseToContain(t, framework, keycloakInternalURL+"/auth/realms/"+realmName+"/account", testOperatorIDPDisplayName)
+	return WaitForSuccessResponseToContain(t, framework, keycloakURL+"/auth/realms/"+realmName+"/account", testOperatorIDPDisplayName)
 }
 
 // These flows (by name, not the exact contents here) are built in and required to exist
@@ -382,10 +385,10 @@ func keycloakRealmWithAuthenticatorFlowTest(t *testing.T, framework *test.Framew
 	}
 
 	keycloakCR := getDeployedKeycloakCR(framework, namespace)
-	keycloakInternalURL := keycloakCR.Status.InternalURL
+	keycloakURL := keycloakCR.Status.ExternalURL
 
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true} //nolint
-	return WaitForSuccessResponseToContain(t, framework, keycloakInternalURL+"/auth/realms/"+realmName+"/account", testOperatorIDPDisplayName)
+	return WaitForSuccessResponseToContain(t, framework, keycloakURL+"/auth/realms/"+realmName+"/account", testOperatorIDPDisplayName)
 }
 
 func keycloakRealmWithUserFederationTest(t *testing.T, framework *test.Framework, ctx *test.Context, namespace string) error {
@@ -459,10 +462,10 @@ func keycloakRealmWithUserFederationTest(t *testing.T, framework *test.Framework
 	}
 
 	keycloakCR := getDeployedKeycloakCR(framework, namespace)
-	keycloakInternalURL := keycloakCR.Status.InternalURL
+	keycloakURL := keycloakCR.Status.ExternalURL
 
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true} //nolint
-	return WaitForSuccessResponseToContain(t, framework, keycloakInternalURL+"/auth/realms/"+realmName+"/account", testOperatorIDPDisplayName)
+	return WaitForSuccessResponseToContain(t, framework, keycloakURL+"/auth/realms/"+realmName+"/account", testOperatorIDPDisplayName)
 }
 
 func keycloakUnmanagedRealmTest(t *testing.T, framework *test.Framework, ctx *test.Context, namespace string) error {

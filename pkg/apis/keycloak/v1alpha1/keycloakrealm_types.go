@@ -38,6 +38,9 @@ type KeycloakAPIRealm struct {
 	// Realm HTML display name.
 	// +optional
 	DisplayNameHTML string `json:"displayNameHtml,omitempty"`
+	// Realm Password Policy
+	// +optional
+	PasswordPolicy string `json:"passwordPolicy,omitempty"`
 	// A set of Keycloak Users.
 	// +optional
 	Users []*KeycloakAPIUser `json:"users,omitempty"`
@@ -174,6 +177,13 @@ type KeycloakAPIRealm struct {
 	// Client Scope Mappings
 	// +optional
 	ClientScopeMappings map[string]ScopeMappingRepresentationArray `json:"clientScopeMappings,omitempty"`
+
+	// Access Token Lifespan For Implicit Flow
+	// +optional
+	AccessTokenLifespanForImplicitFlow *int32 `json:"accessTokenLifespanForImplicitFlow,omitempty"`
+	// Access Token Lifespan
+	// +optional
+	AccessTokenLifespan *int32 `json:"accessTokenLifespan,omitempty"`
 }
 
 type RoleRepresentationArray []RoleRepresentation
