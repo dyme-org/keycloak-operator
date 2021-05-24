@@ -1138,9 +1138,6 @@ spec:
                         type: string
                     type: object
                   type: array
-                userManagedAccessAllowed:
-                  description: User Managed Access Allowed
-                  type: boolean
                 users:
                   description: A set of Keycloak Users.
                   items:
